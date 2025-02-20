@@ -1,0 +1,16 @@
+# 💾 Node Modules
+node_modules/
+package-lock.json 
+
+# 🔑 Environment Variables 
+.env 
+
+# 🛠 Logs & Temp Files
+logs/
+*.log
+npm-debug.log* 
+
+# 🚀 Build Files (if using TypeScript or Babel)
+dist/
+build/ 
+ 
