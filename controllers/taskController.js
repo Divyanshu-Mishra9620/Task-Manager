@@ -1,5 +1,5 @@
 const Task = require("../models/Task");
-const Subtask = require("../models/Subtask");
+const Subtask = require("../models/SubTask");
 const mongoose = require("mongoose");
 
 exports.getSubtasksByTaskId = async (req, res) => {
