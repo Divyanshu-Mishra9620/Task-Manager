@@ -11,7 +11,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://task-manager-frontend-7dms.vercel.app",
+      "http://task-manager-frontend-7dms.vercel.app",
     ],
     methods: "GET,POST,PUT,DELETE",
     credentials: true,
