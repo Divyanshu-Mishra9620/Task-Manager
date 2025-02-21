@@ -1,17 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const Task = require("../models/Task");
-const Subtask = require("../models/SubTask");
-
-const formatDateForFrontend = (date) => {
-  if (!date) return null;
-  const d = new Date(date);
-  return isNaN(d.getTime()) ? null : d.toISOString().split("T")[0];
-};
-const formatDateForDB = (date) => {
-  if (!date) return null;
-  return new Date(date);
-};
+const Subtask = require("../models/Subtask");
+const {
+  getSubtasksByTaskId,
+  deleteSubtask,
+  saveSubtask,
+} = require("../controllers/taskController");
 
 // =============================
 //        TASK ROUTES
@@ -43,50 +38,16 @@ router.get("/", async (req, res) => {
 //        SUBTASK ROUTES
 // =============================
 
-router.get("/:taskId/subtasks", async (req, res) => {
-  try {
-    const { taskId } = req.params;
-    const subtasks = await Subtask.find({ taskId });
+router.get("/:taskId/subtasks", getSubtasksByTaskId);
 
-    const formattedSubtasks = subtasks.map((subtask) => ({
-      ...subtask.toObject(),
-      startDate: formatDateForFrontend(subtask.startDate),
-      endDate: formatDateForFrontend(subtask.endDate),
-    }));
+router.post("/:taskId/subtasks", saveSubtask);
 
-    res.status(200).json(formattedSubtasks);
-  } catch (error) {
-    console.error("Error fetching subtasks:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
-
-router.post("/:taskId/subtasks", async (req, res) => {
-  try {
-    const { title, note, assignees, startDate, endDate } = req.body;
-    const { taskId } = req.params;
-
-    const newSubtask = new Subtask({
-      taskId,
-      title,
-      note,
-      assignees,
-      startDate: formatDateForDB(startDate),
-      endDate: formatDateForDB(endDate),
-    });
-
-    await newSubtask.save();
-    res.status(201).json(newSubtask);
-  } catch (error) {
-    console.error("Error creating subtask:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
+router.delete("/:taskId/subtasks/:subtaskId", deleteSubtask);
 
 router.put("/:taskId/subtasks/:subtaskId", async (req, res) => {
   try {
     const { subtaskId } = req.params;
-    const { title, note, assignees, startDate, endDate } = req.body;
+    const { title, note, startDate, endDate, assignees } = req.body;
 
     const subtask = await Subtask.findById(subtaskId);
     if (!subtask) {
@@ -95,9 +56,9 @@ router.put("/:taskId/subtasks/:subtaskId", async (req, res) => {
 
     if (title !== undefined) subtask.title = title;
     if (note !== undefined) subtask.note = note;
+    if (startDate !== undefined) subtask.startDate = startDate;
+    if (endDate !== undefined) subtask.endDate = endDate;
     if (assignees !== undefined) subtask.assignees = assignees;
-    if (startDate !== undefined) subtask.startDate = formatDateForDB(startDate);
-    if (endDate !== undefined) subtask.endDate = formatDateForDB(endDate);
 
     await subtask.save();
 

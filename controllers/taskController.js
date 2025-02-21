@@ -1,34 +1,46 @@
 const Task = require("../models/Task");
-const SubTask = require("../models/SubTask");
+const Subtask = require("../models/Subtask");
 const mongoose = require("mongoose");
 
-// Fetch subtasks for a specific task
 exports.getSubtasksByTaskId = async (req, res) => {
   const { taskId } = req.params;
-  try {
-    const task = await Task.findById(taskId).populate("subtasks");
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-    res.json(task.subtasks);
-  } catch (error) {
-    console.error("Error fetching subtasks:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-};
-
-// Save a subtask for a specific task
-exports.saveSubtask = async (req, res) => {
-  const { taskId } = req.params;
-  const { title, startDate, endDate, assignees, note } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(taskId)) {
     return res.status(400).json({ message: "Invalid task ID format" });
   }
 
   try {
-    // Create and save new subtask
-    const newSubtask = new SubTask({
+    const task = await Task.findById(taskId).populate("subtasks");
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.json(task.subtasks || []);
+  } catch (error) {
+    console.error("Error fetching subtasks:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+exports.saveSubtask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { title, startDate, endDate, assignees, note } = req.body;
+
+    console.log("📥 Received Subtask Data:", req.body);
+
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      console.log("🚫 Invalid Task ID:", taskId);
+      return res.status(400).json({ message: "Invalid Task ID" });
+    }
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      console.log("🚫 Task not found:", taskId);
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    const newSubtask = new Subtask({
       title,
       startDate,
       endDate,
@@ -38,37 +50,47 @@ exports.saveSubtask = async (req, res) => {
     });
     await newSubtask.save();
 
-    // Update the parent task with the new subtask reference
-    await Task.findByIdAndUpdate(taskId, {
-      $push: { subtasks: newSubtask._id },
-    });
+    task.subtasks.push(newSubtask._id);
+    await task.save();
 
-    res.status(201).json(newSubtask);
-  } catch (err) {
-    console.error("Error saving subtask:", err);
-    res.status(500).json({ message: "Internal Server Error" });
+    console.log("✅ Subtask added successfully:", newSubtask);
+    res
+      .status(201)
+      .json({ message: "Subtask added successfully", subtask: newSubtask });
+  } catch (error) {
+    console.error("❌ Error in saveSubtask:", error);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-// Delete a subtask
 exports.deleteSubtask = async (req, res) => {
   const { taskId, subtaskId } = req.params;
 
+  if (
+    !mongoose.Types.ObjectId.isValid(taskId) ||
+    !mongoose.Types.ObjectId.isValid(subtaskId)
+  ) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+
   try {
-    // Find the task and ensure it exists
     const task = await Task.findById(taskId);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // Remove the subtask reference from the task
-    task.subtasks = task.subtasks.filter(
-      (subtask) => subtask.toString() !== subtaskId
-    );
-    await task.save();
+    const subtask = await Subtask.findById(subtaskId);
+    if (!subtask) {
+      return res.status(404).json({ message: "Subtask not found" });
+    }
 
-    // Delete the subtask document
-    await SubTask.findByIdAndDelete(subtaskId);
+    await Task.findByIdAndUpdate(taskId, {
+      $pull: { subtasks: subtaskId },
+    });
+
+    await Subtask.findByIdAndDelete(subtaskId);
 
     res.json({ message: "Subtask deleted successfully" });
   } catch (error) {

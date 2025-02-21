@@ -5,16 +5,18 @@ const Task = require("./models/Task");
 
 const app = express();
 
+app.use(express.json());
+
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
       "https://task-manager-frontend-7dms.vercel.app",
     ],
+    methods: "GET,POST,PUT,DELETE",
     credentials: true,
   })
 );
-app.use(express.json());
 
 app.use("/api/tasks", taskRoutes);
 
